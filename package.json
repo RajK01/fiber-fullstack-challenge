@@ -1,0 +1,38 @@
+{
+  "name": "fiber-challenge",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "cross-env NODE_ENV=development npx next dev --turbopack",
+    "build": "cross-env NODE_ENV=production npx next build --turbopack",
+    "start": "NODE_ENV=production npx next start",
+    "lint": "biome check",
+    "format": "biome format --write",
+    "setup": "tsx src/setup.ts"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "axios": "^1.13.6",
+    "clsx": "^2.1.1",
+    "cross-env": "^10.1.0",
+    "lucide-react": "^0.575.0",
+    "next": "15.5.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "tailwind-merge": "^3.5.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.2.0",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "tailwindcss": "^4",
+    "tsx": "^4.20.4",
+    "typescript": "^5"
+  }
+}
