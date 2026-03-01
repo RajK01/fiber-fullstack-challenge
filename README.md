@@ -2,7 +2,8 @@
 
 ### 👤 Candidate Info
 - **Name:** Rajeev Kumar
-- **GitHub:** [Your Username]
+- **GitHub Username:** RajK01
+- **Repository URL:** https://github.com/RajK01/fiber-fullstack-challenge
 - **Role:** Full-Stack Engineer Challenge
 
 ### 🚀 Overview
