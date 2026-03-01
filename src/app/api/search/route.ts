@@ -2,84 +2,51 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
+export async function GET() {
+  const filePath = path.join(process.cwd(), 'data', 'final.json');
+  if (!fs.existsSync(filePath)) return NextResponse.json([]);
+  
+  const companies = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  // Extract all unique tech names from the data automatically
+  const allTechs = companies.flatMap((c: any) => c.technologies.map((t: any) => t.name));
+  const uniqueTechs = Array.from(new Set(allTechs)).sort();
+  
+  return NextResponse.json(uniqueTechs);
+}
+
 export async function POST(req: Request) {
   try {
     const filters = await req.json();
-    
-    // 1. Load the pre-joined data
     const filePath = path.join(process.cwd(), 'data', 'final.json');
-    if (!fs.existsSync(filePath)) {
-      return NextResponse.json(
-        { error: "Data not initialized. Run the setup script first." }, 
-        { status: 500 }
-      );
-    }
-    
-    const fileContent = fs.readFileSync(filePath, 'utf8');
-    let companies = JSON.parse(fileContent);
+    if (!fs.existsSync(filePath)) return NextResponse.json({ error: "No Data" }, { status: 500 });
 
-    // 2. Apply Filtering Logic
-    const filteredResults = companies.filter((company: any) => {
-      
-      // Country Filter
+    const companies = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+
+    const filtered = companies.filter((c: any) => {
+      // 1. Country (Case-Insensitive)
       if (filters.countries?.length > 0) {
-        if (!filters.countries.includes(company.country)) return false;
+        if (!filters.countries.some((code: string) => code.toUpperCase() === c.country.toUpperCase())) return false;
       }
 
-      // Industry Filter
-      if (filters.industries?.length > 0) {
-        if (!filters.industries.includes(company.industry)) return false;
+      // 2. Tech Logic (Case-Insensitive)
+      const cTechs = c.technologies.map((t: any) => t.name.toLowerCase().trim());
+      const sTechs = (filters.includeTech || []).map((t: string) => t.toLowerCase().trim());
+
+      if (sTechs.length > 0) {
+        const op = filters.techOperator || 'OR';
+        if (op === 'AND' && !sTechs.every(t => cTechs.includes(t))) return false;
+        if (op === 'OR' && !sTechs.some(t => cTechs.includes(t))) return false;
+        if (op === 'NOT' && sTechs.some(t => cTechs.includes(t))) return false;
       }
 
-      // Prepare tech names for easy comparison
-      const companyTechNames = company.technologies.map((t: any) => t.name);
-
-      // Technology Include Filter (AND / OR Logic)
-      if (filters.includeTech?.length > 0) {
-        if (filters.techOperator === 'AND') {
-          const hasAll = filters.includeTech.every((tech: string) => 
-            companyTechNames.includes(tech)
-          );
-          if (!hasAll) return false;
-        } else {
-          const hasAny = filters.includeTech.some((tech: string) => 
-            companyTechNames.includes(tech)
-          );
-          if (!hasAny) return false;
-        }
-      }
-
-      // Technology Exclude Filter
-      if (filters.excludeTech?.length > 0) {
-        const hasExcluded = filters.excludeTech.some((tech: string) => 
-          companyTechNames.includes(tech)
-        );
-        if (hasExcluded) return false;
-      }
-
-      // Minimum Technology Count Filter
-      if (filters.minTechCount !== undefined) {
-        if (company.totalTechCount < filters.minTechCount) return false;
-      }
+      // 3. Min Count
+      if (filters.minTechCount && c.totalTechCount < Number(filters.minTechCount)) return false;
 
       return true;
     });
 
-    // 3. Pagination Logic
-    const page = filters.page || 1;
-    const limit = filters.limit || 20;
-    const startIndex = (page - 1) * limit;
-    const paginatedResults = filteredResults.slice(startIndex, startIndex + limit);
-
-    return NextResponse.json({
-      results: paginatedResults,
-      total: filteredResults.length,
-      page,
-      totalPages: Math.ceil(filteredResults.length / limit)
-    });
-
-  } catch (error) {
-    console.error("Search API Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ results: filtered.slice(0, 50), total: filtered.length });
+  } catch (e) {
+    return NextResponse.json({ error: "Internal Error" }, { status: 500 });
   }
 }
