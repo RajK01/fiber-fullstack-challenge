@@ -6,7 +6,7 @@ import AdmZip from "adm-zip";
 const DATA_URL = "https://fiber-challenges.s3.us-east-1.amazonaws.com/sample-data.zip";
 const DATA_DIR = path.join(process.cwd(), "data");
 
-// Function to download Data and then extract that data 
+// Download Data as JSON file to extrcat as seperate files
 async function downloadData() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   const zipPath = path.join(DATA_DIR, "sample-data.zip");
@@ -20,14 +20,12 @@ async function downloadData() {
   zip.extractAllTo(DATA_DIR, true);
 }
 
-// Load Jsin Data
+// Load that data to extract
 function loadJsonQuietly(fileName: string) {
   const filePath = path.join(DATA_DIR, fileName);
   if (!fs.existsSync(filePath)) return [];
 
   const buffer = fs.readFileSync(filePath);
-  
-  // Clean encoding and null bytes silently
   let content = (buffer[0] === 0xff && buffer[1] === 0xfe) 
     ? buffer.toString("utf16le") 
     : buffer.toString("utf8");
@@ -43,7 +41,6 @@ function loadJsonQuietly(fileName: string) {
   try {
     return JSON.parse(cleanContent);
   } catch {
-    // Silent fallback for JSON Lines
     const lines = cleanContent.split("\n");
     const result: any[] = [];
     for (const line of lines) {
@@ -52,16 +49,19 @@ function loadJsonQuietly(fileName: string) {
       try {
         result.push(JSON.parse(trimmed));
       } catch {
-        // Ignore errors silently to keep terminal clean
+        // Silent skip to keep output clean
       }
     }
     return result;
   }
 }
 
+// Join tomap
 function joinData(meta: any[], tech: any[], index: any[]) {
   const techMap: Record<string, string> = {};
-  index.forEach(t => { if (t?.Name) techMap[t.Name] = t.Category || "Other"; });
+  index.forEach(t => { 
+    if (t?.Name) techMap[t.Name] = t.Category || "Other"; 
+  });
 
   const techByDomain: Record<string, any[]> = {};
   tech.forEach(item => {
@@ -84,8 +84,9 @@ function joinData(meta: any[], tech: any[], index: any[]) {
 
     return {
       domain,
-      name: company.N || domain,
-      country: company.C || "Unknown",
+      name: company.CN || domain,       // CN is Company Name
+      country: company.CO || "Unknown", // CO is Country (GB, US, etc.)
+      city: company.C || "Unknown",     // C is City
       industry: company.CAT || "Unknown",
       technologies: techs,
       totalTechCount: techs.length,
@@ -98,23 +99,19 @@ async function main() {
   try {
     await downloadData();
 
-    // Loading data without showing errors
     const metaData = loadJsonQuietly("metaData.sample.json");
     const techData = loadJsonQuietly("techData.sample.json");
     const techIndex = loadJsonQuietly("techIndex.sample.json");
 
     const finalData = joinData(metaData, techData, techIndex);
     
-    fs.writeFileSync(
-      path.join(DATA_DIR, "final.json"), 
-      JSON.stringify(finalData, null, 2)
-    );
+    const outPath = path.join(DATA_DIR, "final.json");
+    fs.writeFileSync(outPath, JSON.stringify(finalData, null, 2));
 
-    console.log("✅ Data processed successfully!");
+    console.log("✅ Setup complete with correct field mapping!");
     console.log(`🚀 Finalized ${finalData.length} records in data/final.json`);
   } catch (error) {
-    // Only show high-level critical errors if the whole process fails
-    console.error("❌ Setup failed unexpectedly.");
+    console.error("❌ Critical error during setup.");
   }
 }
 
