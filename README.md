@@ -16,23 +16,14 @@ Next.js 15 (App Router), TypeScript, Tailwind CSS, Lucide Icons
 
 ### ✨ Features
 
-### 🔍 Advanced Search
 - Multi-tech AND / OR / NOT logic builder
 - Typeahead tech picker (with tags)
 - Filters:
-  - Country
-  - Industry
-  - Minimum tech count
-  - Technology category
-
-### 📊 Results Table
+  - Country, Industry, Minimum tech count, Technology category
 - Pagination
 - Open domain in new tab
 - Clean, readable layout
-
-### 📤 Export Options
-- Export to CSV
-- Export to JSON
+- Export to CSV and JSON
 
 ---
 
@@ -58,4 +49,5 @@ Run the Server
 ```bash
 npm run dev
 ```
+
 
