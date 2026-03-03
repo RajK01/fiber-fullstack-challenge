@@ -1,30 +1,88 @@
-# Fiber AI Full-Stack Challenge - Prospecting Engine
+## Fiber AI Full-Stack Challenge: Prospecting Engine
 
-## 👤 Candidate Info
-- **Name:** [Your Name]
-- **GitHub:** [Your Username]
-- **Role:** Full-Stack Engineer Challenge
+### 👤 Candidate Info
+- **Name:** Rajeev Kumar
+- **GitHub:** RajK01
+- **GitHub URL:** https://github.com/RajK01/fiber-fullstack-challenge
+- **Role:** Full-Stack Engineer Challenge Submission
 
-## 🚀 Overview
-A high-performance prospecting engine built with **Next.js 15**, **TypeScript**, and **Tailwind CSS**. This application allows users to perform complex, multi-layered searches across BuiltWith technology datasets, identifying companies based on tech stack, geography, and industry metadata.
+---
 
-## 🛠️ Tech Stack
-- **Frontend:** Next.js (App Router), Lucide Icons, Framer Motion (for animations)
-- **Styling:** Tailwind CSS (Custom "Romantic/Boutique" UI)
-- **Search Engine:** In-memory filtered search with Debounced execution
-- **Data Handling:** Custom ETL script (`setup.ts`) to join and normalize BuiltWith JSON files
+### 🚀 Overview
 
-## ✨ Features Implemented
-- **Complex Logic:** Supports `AND`, `OR`, and `NOT` operators for technology stacks.
-- **Unified Search:** Merged inconsistent data (e.g., "gb" vs "GB") into a clean, normalized global filter.
-- **Advanced Filtering:** Filter by Country, Industry, and Minimum Technology Count.
-- **Typeahead Select:** Custom dropdowns for Technology selection with tag-based multi-select.
-- **Data Export:** Instant export of results to **CSV** or **JSON**.
-- **Responsive & "Romantic" UI:** A glassmorphic, high-end interface designed for modern sales teams.
+A high-performance Prospecting Engine built for the Fiber AI challenge using **Next.js 15**, **TypeScript**, and **Tailwind CSS**.
 
-## ⚙️ Setup & Running
+The application enables deep, multi-layered search across BuiltWith datasets — supporting complex queries like:
 
-### 1. Prepare Data
-This command downloads the raw BuiltWith datasets, joins `metaData`, `techData`, and `techIndex` on `domain` and `name`, and prepares the `final.json` used by the engine.
+- Companies using “Shopify OR Stripe but NOT Intercom”
+- Travel companies in the UK
+- Companies using 2+ technologies from a specific category
+
+Focused on a soft, boutique-inspired UI with smooth animations.
+
+---
+
+### 🛠️ Tech Stack
+
+### **Frontend**
+- Next.js 15 (App Router)
+- TypeScript
+- Tailwind CSS
+- Lucide Icons
+
+### **Search Engine**
+- In-memory optimized search
+- Debounced search execution
+- Boolean logic: AND / OR / NOT
+- Category & count-based filtering
+
+### **Data Processing**
+- Custom ETL script (`setup.ts`)
+- Joins:
+  - `metaData.json`
+  - `techData.json`
+  - `techIndex.json`
+- Generates unified dataset → `/data/final.json`
+
+---
+
+### ✨ Features
+
+### 🔍 Advanced Search
+- Multi-tech AND / OR / NOT logic builder
+- Typeahead tech picker (with tags)
+- Filters:
+  - Country
+  - Industry
+  - Minimum tech count
+  - Technology category
+
+### 📊 Results Table
+- Pagination
+- Open domain in new tab
+- Clean, readable layout
+
+### 📤 Export Options
+- Export to CSV
+- Export to JSON
+
+---
+
+### ⚙️ Setup & How to Run
+
+Clone the project:
+
 ```bash
-npm run setup
+git clone https://github.com/RajK01/fiber-fullstack-challenge
+
+cd fiber-fullstack-challenge
+```
+Install:
+```bash
+npm install
+```
+Run the Server
+
+```bash
+npm run dev
+```
