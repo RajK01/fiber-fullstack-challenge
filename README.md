@@ -12,10 +12,29 @@
 
 A high-performance Prospecting Engine built for the Fiber AI challenge using **Next.js 15**, **TypeScript**, and **Tailwind CSS**.
 
-Supporting complex queries like:
+The application enables deep, multi-layered search across BuiltWith datasets — supporting complex queries like:
+
 - Companies using “Shopify OR Stripe but NOT Intercom”
 - Travel companies in the UK
 - Companies using 2+ technologies from a specific category
+
+Focused on a soft, boutique-inspired UI with smooth animations.
+
+---
+
+### 🛠️ Tech Stack
+
+### **Frontend**
+- Next.js 15 (App Router)
+- TypeScript
+- Tailwind CSS
+- Lucide Icons
+
+### **Search Engine**
+- In-memory optimized search
+- Debounced search execution
+- Boolean logic: AND / OR / NOT
+- Category & count-based filtering
 
 ### **Data Processing**
 - Custom ETL script (`setup.ts`)
@@ -67,4 +86,3 @@ Run the Server
 ```bash
 npm run dev
 ```
-

@@ -1,35 +1,35 @@
 "use client";
 
+// Import react from these libraries
 import { useState, useEffect, useCallback, useMemo } from "react";
-import {
-  Search,
-  Globe,
-  Cpu,
-  X,
-  Download,
-  LayoutGrid,
-  Building2,
-  ChevronDown,
-  Loader2,
-} from "lucide-react";
+import {Search, Globe, Cpu, X, Download, LayoutGrid, Building2, ChevronDown, Loader2, } from "lucide-react";
 import debounce from "lodash/debounce";
 
+// Local pre-processed dataset generated from Node script
 import rawData from "../../data/final.json";
 
 export default function Home() {
+  /* --------------------------------------------------------------------------
+   *  STATE MANAGEMENT
+   * ------------------------------------------------------------------------*/
   const [results, setResults] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
-
+  
+  // Filters
   const [includeTech, setIncludeTech] = useState<string[]>([]);
   const [techOperator, setTechOperator] = useState("OR");
   const [country, setCountry] = useState("");
   const [minTech, setMinTech] = useState<number | "">("");
-
+  
+  /* --------------------------------------------------------------------------
+   *  COMPUTE AVAILABLE OPTIONS (memoized for performance)
+   * ------------------------------------------------------------------------*/
   const { availableTechs, availableCountries } = useMemo(() => {
     const techs = new Set<string>();
     const countries = new Set<string>();
 
+    // Extract unique tech names + countries
     (rawData as any[]).forEach((item) => {
       if (item.country && item.country !== "Unknown") {
         countries.add(item.country.toUpperCase());
@@ -44,6 +44,9 @@ export default function Home() {
       availableCountries: Array.from(countries).sort(),
     };
   }, []);
+  /* --------------------------------------------------------------------------
+   *  CALL THE /api/search ENDPOINT
+   * ------------------------------------------------------------------------*/
 
   const fetchResults = async () => {
     if (Number(minTech) < 0) return;
@@ -71,17 +74,23 @@ export default function Home() {
       setLoading(false);
     }
   };
+  /* --------------------------------------------------------------------------
+   *  DEBOUNCED SEARCH (fires after typing stops)
+   * ------------------------------------------------------------------------*/
 
   const debouncedSearch = useCallback(
     debounce(() => fetchResults(), 500),
     [includeTech, techOperator, country, minTech]
   );
-
+  // Re-trigger search whenever filters change
   useEffect(() => {
     debouncedSearch();
     return () => debouncedSearch.cancel();
   }, [includeTech, techOperator, country, minTech, debouncedSearch]);
-
+  
+  /* --------------------------------------------------------------------------
+   *  FILTER HANDLERS
+   * ------------------------------------------------------------------------*/
   const toggleTech = (tech: string) => {
     if (!tech) return;
     if (!includeTech.includes(tech)) {
@@ -92,6 +101,9 @@ export default function Home() {
   const removeTech = (name: string) => {
     setIncludeTech(includeTech.filter((t) => t !== name));
   };
+  /* --------------------------------------------------------------------------
+   *  EXPORT UTILS — JSON + CSV
+   * ------------------------------------------------------------------------*/
 
   const downloadJSON = () => {
     const blob = new Blob([JSON.stringify(results, null, 2)], {
@@ -126,7 +138,7 @@ export default function Home() {
     });
     triggerDownload(blob, `fiber_export_${Date.now()}.csv`);
   };
-
+  // Generic download helper
   const triggerDownload = (blob: Blob, fileName: string) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -137,7 +149,9 @@ export default function Home() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
-
+  /* --------------------------------------------------------------------------
+   *  UI — PAGE STRUCTURE
+   * ------------------------------------------------------------------------*/
   return (
     <div className="flex h-screen bg-gradient-to-br from-rose-50 via-pink-50 to-violet-50 text-slate-900 font-sans">
       <aside className="w-80 backdrop-blur-xl bg-white/60 border-r border-rose-200 p-6 rounded-r-3xl shadow-2xl flex flex-col gap-8 overflow-y-auto">

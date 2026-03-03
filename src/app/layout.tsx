@@ -13,6 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 // src/app/layout.tsx
+// Favicon Name as - Fiber AI, with image as ico 
 export const metadata = {
   title: "Fiber AI | Market Prospector",
   description: "Advanced Market Intelligence Platform",

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
+// Get json data which was extrcated my jsonl 
 export async function GET() {
   const filePath = path.join(process.cwd(), 'data', 'final.json');
   if (!fs.existsSync(filePath)) return NextResponse.json([]);
@@ -14,6 +15,7 @@ export async function GET() {
   return NextResponse.json(uniqueTechs);
 }
 
+// POST request based on User request based on their inputs
 export async function POST(req: Request) {
   try {
     const filters = await req.json();
@@ -31,7 +33,8 @@ export async function POST(req: Request) {
       // 2. Tech Logic (Case-Insensitive)
       const cTechs = c.technologies.map((t: any) => t.name.toLowerCase().trim());
       const sTechs = (filters.includeTech || []).map((t: string) => t.toLowerCase().trim());
-
+      
+      // Checking all conditions of all operators OR, AND and NOT
       if (sTechs.length > 0) {
         const op = filters.techOperator || 'OR';
         if (op === 'AND' && !sTechs.every(t => cTechs.includes(t))) return false;
@@ -46,7 +49,7 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ results: filtered.slice(0, 50), total: filtered.length });
-  } catch (e) {
+  } catch (e) { // Handles error 
     return NextResponse.json({ error: "Internal Error" }, { status: 500 });
   }
 }
