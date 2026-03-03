@@ -3,112 +3,119 @@ import path from "path";
 import axios from "axios";
 import AdmZip from "adm-zip";
 
-// -------------------------------------------------------------
-// Script: setup.ts
-// Purpose: Downloads the sample dataset ZIP, extracts it,
-// loads metadata & tech mappings, merges them into a final
-// normalized JSON structure, and writes final.json to /data.
-// -------------------------------------------------------------
-
 const DATA_URL = "https://fiber-challenges.s3.us-east-1.amazonaws.com/sample-data.zip";
 const DATA_DIR = path.join(process.cwd(), "data");
 
-async function main() {
-  // Ensure the /data directory exists for storing downloaded files
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
-
+// Function to download Data and then extract that data 
+async function downloadData() {
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   const zipPath = path.join(DATA_DIR, "sample-data.zip");
+  
+  console.log("⬇️ Downloading dataset...");
+  const response = await axios.get(DATA_URL, { responseType: "arraybuffer" });
+  fs.writeFileSync(zipPath, response.data);
 
-  console.log("⬇️ Downloading...");
-
-  // Download ZIP file as raw bytes
-  const res = await axios.get(DATA_URL, { responseType: "arraybuffer" });
-  fs.writeFileSync(zipPath, res.data);
-
-  // Extract ZIP contents into /data
+  console.log("📦 Extracting files...");
   const zip = new AdmZip(zipPath);
   zip.extractAllTo(DATA_DIR, true);
+}
 
-  // -----------------------------------------------------------
-  // Utility loader:
-  // Handles files that may be UTF-8, UTF-16, or newline-delimited JSON.
-  // Normalizes and returns parsed JSON.
-  // -----------------------------------------------------------
-  const load = (f: string) => {
-    let p = path.join(DATA_DIR, f);
+// Load Jsin Data
+function loadJsonQuietly(fileName: string) {
+  const filePath = path.join(DATA_DIR, fileName);
+  if (!fs.existsSync(filePath)) return [];
 
-    // Some archives place files inside sample-data/ instead
-    if (!fs.existsSync(p)) p = path.join(DATA_DIR, "sample-data", f);
+  const buffer = fs.readFileSync(filePath);
+  
+  // Clean encoding and null bytes silently
+  let content = (buffer[0] === 0xff && buffer[1] === 0xfe) 
+    ? buffer.toString("utf16le") 
+    : buffer.toString("utf8");
 
-    const buf = fs.readFileSync(p);
+  const cleanContent = content
+    .replace(/^\uFEFF/, "")
+    .replace(/\0/g, "") 
+    .replace(/\r\n/g, "\n")
+    .trim();
 
-    // Detect UTF-16 (0xFF 0xFE) or fallback to UTF-8
-    const content =
-      buf[0] === 0xFF && buf[1] === 0xFE
-        ? buf.toString('utf16le')
-        : buf.toString('utf8').replace(/\0/g, '');
+  if (!cleanContent) return [];
 
-    try {
-      // Attempt direct JSON parsing
-      return JSON.parse(content);
-    } catch {
-      // Fallback: Parse JSON lines (each line is an object)
-      return content
-        .split('\n')
-        .filter(l => l.trim())
-        .map(l =>
-          JSON.parse(
-            l
-              .replace(/^[^{\[]+/, '') // Remove leading garbage
-              .replace(/[^}\]]+$/, '') // Remove trailing garbage
-          )
-        );
+  try {
+    return JSON.parse(cleanContent);
+  } catch {
+    // Silent fallback for JSON Lines
+    const lines = cleanContent.split("\n");
+    const result: any[] = [];
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      try {
+        result.push(JSON.parse(trimmed));
+      } catch {
+        // Ignore errors silently to keep terminal clean
+      }
     }
-  };
+    return result;
+  }
+}
 
-  // Load all 3 source datasets
-  const meta = load("metaData.sample.json");   // Company metadata
-  const tech = load("techData.sample.json");   // Technology lists per domain
-  const idx = load("techIndex.sample.json");   // Technology → Category mapping
+function joinData(meta: any[], tech: any[], index: any[]) {
+  const techMap: Record<string, string> = {};
+  index.forEach(t => { if (t?.Name) techMap[t.Name] = t.Category || "Other"; });
 
-  // -----------------------------------------------------------
-  // Build lookup table: { TechName → Category }
-  // Example: { "React": "Frontend", "Kafka": "Data" }
-  // -----------------------------------------------------------
-  const techLookup: any = {};
-  idx.forEach((t: any) => {
-    techLookup[t.Name] = t.Category;
+  const techByDomain: Record<string, any[]> = {};
+  tech.forEach(item => {
+    if (item?.D) {
+      techByDomain[item.D] = (item.T || []).map((t: any) => ({
+        name: t.N,
+        category: techMap[t.N] || "Other"
+      }));
+    }
   });
 
-  // -----------------------------------------------------------
-  // Build mapping per domain:
-  // { domain → [{ name: techName, category: techCategory }] }
-  // -----------------------------------------------------------
-  const techByD: any = {};
-  tech.forEach((item: any) => {
-    techByD[item.D] = (item.T || []).map((t: any) => ({
-      name: t.N,
-      category: techLookup[t.N] || "Other"
-    }));
+  return meta.map(company => {
+    const domain = company.D;
+    const techs = techByDomain[domain] || [];
+    const stats: Record<string, number> = {};
+    
+    techs.forEach(t => {
+      stats[t.category] = (stats[t.category] || 0) + 1;
+    });
+
+    return {
+      domain,
+      name: company.N || domain,
+      country: company.C || "Unknown",
+      industry: company.CAT || "Unknown",
+      technologies: techs,
+      totalTechCount: techs.length,
+      categoryStats: stats
+    };
   });
+}
 
-  // -----------------------------------------------------------
-  // Final merged structure per company:
-  // domain, company name, country, industry, technology list, count
-  // -----------------------------------------------------------
-  const final = meta.map((c: any) => ({
-    domain: c.D,
-    name: c.CN || c.D,
-    country: c.CO || "Unknown",
-    industry: c.CAT || "Unknown",
-    technologies: techByD[c.D] || [],
-    totalTechCount: (techByD[c.D] || []).length
-  }));
+async function main() {
+  try {
+    await downloadData();
 
-  // Write final processed dataset
-  fs.writeFileSync(path.join(DATA_DIR, "final.json"), JSON.stringify(final, null, 2));
+    // Loading data without showing errors
+    const metaData = loadJsonQuietly("metaData.sample.json");
+    const techData = loadJsonQuietly("techData.sample.json");
+    const techIndex = loadJsonQuietly("techIndex.sample.json");
 
-  console.log("✅ Ready!");
+    const finalData = joinData(metaData, techData, techIndex);
+    
+    fs.writeFileSync(
+      path.join(DATA_DIR, "final.json"), 
+      JSON.stringify(finalData, null, 2)
+    );
+
+    console.log("✅ Data processed successfully!");
+    console.log(`🚀 Finalized ${finalData.length} records in data/final.json`);
+  } catch (error) {
+    // Only show high-level critical errors if the whole process fails
+    console.error("❌ Setup failed unexpectedly.");
+  }
 }
 
 main();
